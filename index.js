@@ -127,7 +127,27 @@ if (!MONGODB_URI) {
   }
 }
 
-const mongoUri = 'mongodb+srv://tolujohnofficial_db_user:ijTgl8yrzbqGmqq5@cluster0.frwrfef.mongodb.net/?appName=Cluster0' || 'mongodb://localhost:27017/bitcoinworld-game';
+// Build MongoDB URI - add database name if not present
+let mongoUri = MONGODB_URI || 'mongodb://localhost:27017/bitcoinworld-game';
+
+// If using MongoDB Atlas (mongodb+srv://) and no database name is specified, add it
+if (mongoUri.includes('mongodb+srv://') && !mongoUri.match(/\/[^/?]+(\?|$)/)) {
+  // Add database name before query parameters
+  if (mongoUri.includes('?')) {
+    mongoUri = mongoUri.replace('?', '/bitcoinworld-game?');
+  } else {
+    mongoUri = mongoUri + '/bitcoinworld-game';
+  }
+} else if (mongoUri.includes('mongodb://') && !mongoUri.match(/\/[^/?]+(\?|$)/) && !mongoUri.includes('localhost')) {
+  // For regular mongodb:// connections (not localhost), add database name
+  if (mongoUri.includes('?')) {
+    mongoUri = mongoUri.replace('?', '/bitcoinworld-game?');
+  } else {
+    mongoUri = mongoUri + '/bitcoinworld-game';
+  }
+}
+
+console.log('Connecting to MongoDB...');
 
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
