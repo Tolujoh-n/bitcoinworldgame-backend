@@ -114,17 +114,42 @@ io.on('connection', (socket) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bitcoinworld-game', {
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('ERROR: MONGODB_URI environment variable is not set!');
+  console.error('Please set MONGODB_URI in your Render environment variables.');
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Cannot start server without MongoDB connection in production.');
+    process.exit(1);
+  } else {
+    console.warn('Using default localhost MongoDB for development...');
+  }
+}
+
+const mongoUri = MONGODB_URI || 'mongodb://localhost:27017/bitcoinworld-game';
+
+mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+}).catch((err) => {
+  console.error('MongoDB connection failed:', err.message);
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Server cannot start without MongoDB connection.');
+    process.exit(1);
+  }
 });
 
 mongoose.connection.on('connected', () => {
-  console.log('Connected to MongoDB');
+  console.log('✅ Connected to MongoDB');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
+  console.error('❌ MongoDB connection error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️  MongoDB disconnected');
 });
 
 // Import routes
