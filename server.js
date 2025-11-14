@@ -12,48 +12,19 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Configure allowed origins for CORS
-const defaultOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://bitcoinworld-game.vercel.app',
-];
+const allowedOrigins = (process.env.CLIENT_URL || '*')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
-const envOrigins = process.env.CLIENT_URL 
-  ? process.env.CLIENT_URL.split(',').map(origin => origin.trim()).filter(Boolean)
-  : [];
-
-const allowedOrigins = [...defaultOrigins, ...envOrigins];
-
-// CORS configuration
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Remove trailing slash for comparison
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    
-    // Check if origin is in allowed list (with or without trailing slash)
-    if (allowedOrigins.includes(origin) || 
-        allowedOrigins.includes(normalizedOrigin) || 
-        allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      // Log for debugging
-      console.log('CORS blocked origin:', origin);
-      console.log('Allowed origins:', allowedOrigins);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: allowedOrigins,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins.length === 0 || allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
