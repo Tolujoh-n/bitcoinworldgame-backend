@@ -127,7 +127,7 @@ if (!MONGODB_URI) {
   }
 }
 
-const mongoUri = MONGODB_URI || 'mongodb://localhost:27017/bitcoinworld-game';
+const mongoUri = 'mongodb+srv://tolujohnofficial_db_user:ijTgl8yrzbqGmqq5@cluster0.frwrfef.mongodb.net/?appName=Cluster0' || 'mongodb://localhost:27017/bitcoinworld-game';
 
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
