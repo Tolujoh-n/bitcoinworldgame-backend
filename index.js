@@ -7,25 +7,15 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: './config.env' });
 
 const app = express();
 const server = http.createServer(app);
 
-// Default allowed origins (always include these)
-const defaultOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://bitcoinworld-game.vercel.app',
-];
 
-// Get additional origins from environment variable
-const envOrigins = process.env.CLIENT_URL 
-  ? process.env.CLIENT_URL.split(',').map(origin => origin.trim()).filter(Boolean)
-  : [];
-
-// Combine all allowed origins
-const allowedOrigins = [...defaultOrigins, ...envOrigins];
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map(origin => origin.trim());
 
 // CORS configuration - must use a function when credentials: true
 const corsOptions = {
@@ -128,37 +118,35 @@ if (!MONGODB_URI) {
 }
 
 // Build MongoDB URI - add database name if not present
-let mongoUri = MONGODB_URI || 'mongodb://localhost:27017/bitcoinworld-game';
+let mongoUri = MONGODB_URI || 'mongodb+srv://tolujohnofficial_db_user:ijTgl8yrzbqGmqq5@cluster0.frwrfef.mongodb.net/bitcoinworld-game?appName=Cluster0';
 
-// If using MongoDB Atlas (mongodb+srv://) and no database name is specified, add it
-if (mongoUri.includes('mongodb+srv://') && !mongoUri.match(/\/[^/?]+(\?|$)/)) {
-  // Add database name before query parameters
-  if (mongoUri.includes('?')) {
-    mongoUri = mongoUri.replace('?', '/bitcoinworld-game?');
+// Validate MongoDB URI format
+if (mongoUri && !mongoUri.startsWith('mongodb://') && !mongoUri.startsWith('mongodb+srv://')) {
+  console.error('ERROR: Invalid MongoDB URI format. Must start with "mongodb://" or "mongodb+srv://"');
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
   } else {
-    mongoUri = mongoUri + '/bitcoinworld-game';
-  }
-} else if (mongoUri.includes('mongodb://') && !mongoUri.match(/\/[^/?]+(\?|$)/) && !mongoUri.includes('localhost')) {
-  // For regular mongodb:// connections (not localhost), add database name
-  if (mongoUri.includes('?')) {
-    mongoUri = mongoUri.replace('?', '/bitcoinworld-game?');
-  } else {
-    mongoUri = mongoUri + '/bitcoinworld-game';
+    console.warn('Falling back to default localhost MongoDB...');
+    mongoUri = 'mongodb+srv://tolujohnofficial_db_user:ijTgl8yrzbqGmqq5@cluster0.frwrfef.mongodb.net/bitcoinworld-game?appName=Cluster0';
   }
 }
 
 console.log('Connecting to MongoDB...');
 
-mongoose.connect(mongoUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).catch((err) => {
-  console.error('MongoDB connection failed:', err.message);
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Server cannot start without MongoDB connection.');
-    process.exit(1);
-  }
-});
+if (mongoUri) {
+  mongoose.connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }).catch((err) => {
+    console.error('MongoDB connection failed:', err.message);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Server cannot start without MongoDB connection.');
+      process.exit(1);
+    }
+  });
+} else {
+  console.warn('⚠️  No MongoDB URI provided. Some features may not work.');
+}
 
 mongoose.connection.on('connected', () => {
   console.log('✅ Connected to MongoDB');
@@ -186,7 +174,19 @@ app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ message: 'Server is running!' });
+  res.json({ 
+    message: 'Server is running!',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 const PORT = process.env.PORT || 5000;

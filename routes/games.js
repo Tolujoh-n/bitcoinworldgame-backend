@@ -73,7 +73,12 @@ const games = [
 
 // Get available games
 router.get('/', (req, res) => {
-  res.json({ games });
+  try {
+    res.json({ games });
+  } catch (error) {
+    console.error('Error fetching games:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Get game details

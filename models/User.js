@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-userSchema.index({ walletAddress: 1 });
+// Note: walletAddress index is automatically created by unique: true, so we don't need to add it explicitly
 userSchema.index({ totalPoints: -1 });
 userSchema.index({ mintedPoints: -1 });
 
